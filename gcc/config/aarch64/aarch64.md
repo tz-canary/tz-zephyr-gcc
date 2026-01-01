@@ -7754,8 +7754,9 @@
  [(set (match_operand:PTR 0 "register_operand" "=r")
        (unspec:PTR [(match_operand 1 "const_int_operand")]
 		   UNSPEC_SSP_SYSREG))]
- "aarch64_stack_protector_guard != SSP_GLOBAL"
+ "aarch64_stack_protector_guard != SSP_GLOBAL | flag_stack_protect_spe"
  {
+   if (flag_stack_protect_spe) return "";
    char buf[150];
    snprintf (buf, 150, "mrs\\t%%<w>0, %s",
 	    aarch64_stack_protector_guard_reg_str);
@@ -7772,7 +7773,12 @@
 	 UNSPEC_SP_SET))
    (set (match_scratch:PTR 2 "=&r") (const_int 0))]
   ""
-  "ldr\\t%<w>2, %1\;str\\t%<w>2, %0\;mov\t%<w>2, 0"
+  {
+    if (flag_stack_protect_spe) {
+        return "bl\t__stack_protector_spe\;str\t<w>0, %0\;mov\t<w>0, 0";
+    }
+    return "ldr\\t%<w>2, %1\;str\\t%<w>2, %0\;mov\t%<w>2, 0";
+  }
   [(set_attr "length" "12")
    (set_attr "type" "multiple")])
 
@@ -7819,7 +7825,12 @@
    (clobber (match_scratch:PTR 2 "=&r"))
    (clobber (match_scratch:PTR 3 "=&r"))]
   ""
-  "ldr\t%<w>2, %0\;ldr\t%<w>3, %1\;subs\t%<w>2, %<w>2, %<w>3\;mov\t%3, 0"
+  {
+    if (flag_stack_protect_spe) {
+      return "bl __stack_protect_spe\;ldr\t%<w>2, %0\;subs\t<w>0, <w>0, %<w>2\;mov\t%<w>2, 0";
+    }
+    return "ldr\t%<w>2, %0\;ldr\t%<w>3, %1\;subs\t%<w>2, %<w>2, %<w>3\;mov\t%3, 0";
+  }
   [(set_attr "length" "16")
    (set_attr "type" "multiple")])
 
