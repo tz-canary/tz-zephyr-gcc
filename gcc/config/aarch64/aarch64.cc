@@ -6749,7 +6749,21 @@ aarch64_stack_protect_canary_mem (machine_mode mode, rtx decl_rtl,
 				  aarch64_salt_type salt_type)
 {
   rtx addr;
-  if (aarch64_stack_protector_guard == SSP_GLOBAL)
+  if (flag_stack_protect_spe) {
+          aarch64_stack_protector_guard = SSP_SYSREG;  // for emitting stack_protect_combined_test & stack_protect_test
+      rtx salt = GEN_INT (salt_type);
+      addr = gen_reg_rtx (mode);
+      if (mode == DImode)
+        emit_insn (gen_reg_stack_protect_address_di (addr, salt));
+      else
+        {
+          emit_insn (gen_reg_stack_protect_address_si (addr, salt));
+          addr = convert_memory_address (Pmode, addr);
+        }
+      addr = plus_constant (Pmode, addr, aarch64_stack_protector_guard_offset);
+      return gen_rtx_MEM (mode, force_reg (Pmode, addr));
+  }
+  else if (aarch64_stack_protector_guard == SSP_GLOBAL)
     {
       gcc_assert (MEM_P (decl_rtl));
       addr = XEXP (decl_rtl, 0);

@@ -2717,6 +2717,10 @@ fstack-protector
 Common Var(flag_stack_protect, 1) Init(-1) Optimization
 Use propolice as a stack protection method.
 
+fstack-protector-tee
+Common Var(flag_stack_protect_tee, 1) Init(0) Optimization
+Use TEE-isolated canary as a stack protection method.
+
 fstack-protector-all
 Common RejectNegative Var(flag_stack_protect, 2) Init(-1) Optimization
 Use a stack protection method for every function.
