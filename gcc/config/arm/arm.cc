@@ -3766,6 +3766,9 @@ arm_option_override (void)
       gcc_unreachable ();
     }
 
+  if (flag_stack_protect_spe)
+    arm_stack_protector_guard = SSP_GLOBAL;
+
   SET_OPTION_IF_UNSET (&global_options, &global_options_set,
 		       param_sched_autopref_queue_depth,
 		       sched_autopref_queue_depth);

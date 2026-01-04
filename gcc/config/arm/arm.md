@@ -9206,6 +9206,7 @@
 	      (clobber (match_dup 2))])]
   "
 {
+  if (flag_stack_protect_spe) goto end_stack_protect_set;
   if (flag_pic)
     {
       rtx pic_reg;
@@ -9234,6 +9235,7 @@
 	  emit_move_insn (operands[2], mem);
 	}
     }
+  end_stack_protect_set:
 }"
   [(set_attr "arch" "t1,32")]
 )
@@ -9246,9 +9248,15 @@
 	 UNSPEC_SP_SET))
    (clobber (match_dup 1))]
   ""
-  "@
-   ldr\\t%1, [%1]\;str\\t%1, %0\;movs\t%1, #0
-   ldr\\t%1, [%1]\;str\\t%1, %0\;mov\t%1, #0"
+  {
+    if (flag_stack_protect_spe) {
+      if (which_alternative) return "bl \\t__stack_protector_spe\;str\\tr0, %0\;movs\tr0, #0\n";
+      else return "bl \\t__stack_protector_spe\;str\\tr0, %0\;mov\tr0, #0";
+    }
+
+    if (which_alternative) return "ldr\\t%1, [%1]\;str\\t%1, %0\;movs\t%1, #0\n";
+    else                   return "ldr\\t%1, [%1]\;str\\t%1, %0\;mov\t%1, #0";
+  }
   [(set_attr "length" "8,12")
    (set_attr "conds" "clob,nocond")
    (set_attr "type" "multiple")
@@ -9294,6 +9302,8 @@
 {
   rtx eq;
 
+  if (flag_stack_protect_spe) goto skip_ldr_l4;
+
   if (flag_pic)
     {
       rtx pic_reg;
@@ -9322,6 +9332,8 @@
 	  emit_move_insn (operands[3], mem);
 	}
     }
+
+  skip_ldr_l4:
   if (TARGET_32BIT)
     {
       emit_insn (gen_arm_stack_protect_test_insn (operands[4], operands[0],
@@ -9354,7 +9366,12 @@
    (clobber (match_operand:SI 0 "register_operand" "=&l,&r"))
    (clobber (match_dup 2))]
   "TARGET_32BIT"
-  "ldr\t%0, [%2]\;ldr\t%2, %1\;eors\t%0, %2, %0\;mov\t%2, #0"
+  {
+    if (flag_stack_protect_spe) {
+      return "bl\t__stack_protector_spe\;ldr\t%2, %1\;eors\tr0, %2, r0\;mov\t%2, #0";
+    }
+    return "ldr\t%0, [%2]\;ldr\t%2, %1\;eors\t%0, %2, %0\;mov\t%2, #0";
+  }
   [(set_attr "length" "12,16")
    (set_attr "conds" "set")
    (set_attr "type" "multiple")
