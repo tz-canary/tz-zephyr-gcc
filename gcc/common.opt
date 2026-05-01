@@ -2719,7 +2719,15 @@ Use propolice as a stack protection method.
 
 fstack-protector-spe
 Common Var(flag_stack_protect_spe, 1) Init(0) Optimization
-Use TEE-isolated canary as a stack protection method.
+Use TEE-isolated canary as a stack protection method (same as -fstack-protector-spe-n).
+
+fstack-protector-spe-n
+Common Var(flag_stack_protect_spe, 1) Optimization
+Use __stack_protector_spe() only for canary set and compare.
+
+fstack-protector-spe-s
+Common Var(flag_stack_protect_spe, 2) Optimization
+Use __stack_protector_spe() for set and __stack_protector_spe_check(canary) for verification.
 
 fstack-protector-all
 Common RejectNegative Var(flag_stack_protect, 2) Init(-1) Optimization

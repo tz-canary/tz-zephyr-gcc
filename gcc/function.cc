@@ -5025,7 +5025,14 @@ stack_protect_epilogue (void)
     }
 
   if (seq)
-    emit_insn (seq);
+    {
+      emit_insn (seq);
+      if (flag_stack_protect_spe == 2)
+	{
+	  free_temp_slots ();
+	  return;
+	}
+    }
   else
     emit_cmp_and_jump_insns (x, y, EQ, NULL_RTX, ptr_mode, 1, label);
 

@@ -9184,7 +9184,20 @@
       (clobber (match_scratch:SI 2 ""))
       (clobber (match_scratch:SI 3 ""))])]
   "arm_stack_protector_guard == SSP_GLOBAL"
-  ""
+  "
+{
+  if (flag_stack_protect_spe)
+    {
+      rtx func = gen_rtx_SYMBOL_REF (Pmode, \"__stack_protector_spe\");
+      rtx mem = gen_rtx_MEM (Pmode, func);
+      rtx ret = gen_rtx_REG (SImode, R0_REGNUM);
+
+      emit_call_insn (gen_call_value (ret, mem, const0_rtx, NULL_RTX));
+      emit_move_insn (operands[0], ret);
+      emit_move_insn (ret, const0_rtx);
+      DONE;
+    }
+}"
 )
 
 ;; Use a separate insn from the above expand to be able to have the mem outside
@@ -9198,7 +9211,7 @@
 		   UNSPEC_SP_SET))
    (clobber (match_scratch:SI 2 "=&l,&r"))
    (clobber (match_scratch:SI 3 "=&l,&r"))]
-  ""
+  "!flag_stack_protect_spe"
   "#"
   "reload_completed"
   [(parallel [(set (match_dup 0) (unspec:SI [(mem:SI (match_dup 2))]
@@ -9247,13 +9260,7 @@
 	(unspec:SI [(mem:SI (match_operand:SI 1 "register_operand" "+&l,&r"))]
 	 UNSPEC_SP_SET))
    (clobber (match_dup 1))]
-  ""
-  {
-    if (flag_stack_protect_spe) {
-      if (which_alternative) return "bl \\t__stack_protector_spe\;str\\tr0, %0\;movs\tr0, #0\n";
-      else return "bl \\t__stack_protector_spe\;str\\tr0, %0\;mov\tr0, #0";
-    }
-
+  "!flag_stack_protect_spe"
     if (which_alternative) return "ldr\\t%1, [%1]\;str\\t%1, %0\;movs\t%1, #0\n";
     else                   return "ldr\\t%1, [%1]\;str\\t%1, %0\;mov\t%1, #0";
   }
@@ -9276,7 +9283,41 @@
       (clobber (match_scratch:SI 4 ""))
       (clobber (reg:CC CC_REGNUM))])]
   "arm_stack_protector_guard == SSP_GLOBAL"
-  ""
+  "
+{
+  if (flag_stack_protect_spe == 2 && TARGET_32BIT)
+    {
+      rtx func = gen_rtx_SYMBOL_REF (Pmode, \"__stack_protector_spe_check\");
+      rtx mem = gen_rtx_MEM (Pmode, func);
+      rtx ret = gen_rtx_REG (SImode, R0_REGNUM);
+      rtx saved = gen_reg_rtx (SImode);
+
+      emit_move_insn (saved, ret);
+      emit_move_insn (ret, operands[0]);
+      emit_call_insn (gen_call (mem, const0_rtx, NULL_RTX));
+      emit_move_insn (ret, saved);
+      DONE;
+    }
+
+  if (flag_stack_protect_spe && TARGET_32BIT)
+    {
+      rtx func = gen_rtx_SYMBOL_REF (Pmode, \"__stack_protector_spe\");
+      rtx mem = gen_rtx_MEM (Pmode, func);
+      rtx ret = gen_rtx_REG (SImode, R0_REGNUM);
+      rtx tmp = gen_reg_rtx (SImode);
+      rtx cc_reg;
+      rtx eq;
+
+      emit_call_insn (gen_call_value (ret, mem, const0_rtx, NULL_RTX));
+      emit_move_insn (tmp, operands[0]);
+      cc_reg = arm_gen_compare_reg (EQ, tmp, ret, NULL_RTX);
+      emit_move_insn (ret, const0_rtx);
+      emit_move_insn (tmp, const0_rtx);
+      eq = gen_rtx_EQ (GET_MODE (cc_reg), cc_reg, const0_rtx);
+      emit_jump_insn (gen_arm_cond_branch (operands[2], eq, cc_reg));
+      DONE;
+    }
+}"
 )
 
 ;; Use a separate insn from the above expand to be able to have the mem outside
@@ -9333,7 +9374,10 @@
 	}
     }
 
+<<<<<<< HEAD
   skip_ldr_l4:
+=======
+>>>>>>> e5fc0dc1bf5 (feat: implement SISC-NS)
   if (TARGET_32BIT)
     {
       emit_insn (gen_arm_stack_protect_test_insn (operands[4], operands[0],
@@ -9365,6 +9409,7 @@
 		      (const_int 0)))
    (clobber (match_operand:SI 0 "register_operand" "=&l,&r"))
    (clobber (match_dup 2))]
+<<<<<<< HEAD
   "TARGET_32BIT"
   {
     if (flag_stack_protect_spe) {
@@ -9372,6 +9417,10 @@
     }
     return "ldr\t%0, [%2]\;ldr\t%2, %1\;eors\t%0, %2, %0\;mov\t%2, #0";
   }
+=======
+  "TARGET_32BIT && !flag_stack_protect_spe"
+  "ldr\t%0, [%2]\;ldr\t%2, %1\;eors\t%0, %2, %0\;mov\t%2, #0"
+>>>>>>> e5fc0dc1bf5 (feat: implement SISC-NS)
   [(set_attr "length" "12,16")
    (set_attr "conds" "set")
    (set_attr "type" "multiple")
